@@ -11,6 +11,7 @@ def check_database(lookback, crypto_ticker, USD_amount):
 	lookbackperiod = df.iloc[-lookback:]
 	latest_price = df.iloc[-1].Price
 	qty = USD_amount/latest_price
+	qty = round(qty,3)
 	print("Quantity:",qty)
 	print("Price:", latest_price)
 
