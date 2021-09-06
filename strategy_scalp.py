@@ -38,13 +38,11 @@ def strategy_scalp(entry, lookback, open_position=False):
 					order = limit_sell_order()
 					break
 
-strategy_scalp(0.001,60)
-
 
 #function to generate a limit buy and returns the quantiy and prints order details
 def limit_buy_order():
 	df = pd.read_sql(crypto_ticker, engine)
-	latest_price = df.iloc[-1:].Price
+	latest_price = df.iloc[-1].Price
 	qty = USD_amount/latest_price
 	order = client.order_limit_buy(
 		symbol = crypto_ticker,
@@ -57,10 +55,13 @@ def limit_buy_order():
 #function to generate a limit sell
 def limit_sell_order():
 	df = pd.read_sql(crypto_ticker, engine)
-	latest_price = df.iloc[-1:].Price
+	latest_price = df.iloc[-1].Price
 	qty = USD_amount/latest_price
 	order = client.order_limit_sell(
 		symbol = crypto_ticker,
 		quantity = qty,
 		price = latest_price)
 	print(order)
+
+
+strategy_scalp(0.001,60)
