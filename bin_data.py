@@ -22,12 +22,13 @@ def createframe(msg):
 
 
 #Function to call the API for the information, stores it to the SQL database
-while True:
-	await socket.__aenter__()
-	msg = await socket.recv()
-	frame = createframe(msg)
-	frame.to_sql('ADAUSD', engine, if_exists='append', index = False)
-	print(frame)
+async def fetch():
+	while True:
+		await socket.__aenter__()
+		msg = await socket.recv()
+		frame = createframe(msg)
+		frame.to_sql('ADAUSD', engine, if_exists='append', index = False)
+		print(frame)
 
 
 #This will need to remain open and running while the strategy is running until closed.
