@@ -17,18 +17,27 @@ def createframe(msg):
 	df = df.loc[:,['s','E','p']]
 	df.columns = ['symbol','Time','Price']
 	df.Price = df.Price.astype(float)
-	df.Time = pd.to_datetime(df.Time, units='ms')
+	df.Time = pd.to_datetime(df.Time, unit='ms')
 	return df
 
 
 #Function to call the API for the information, stores it to the SQL database
-async def fetch():
+async def main():
 	while True:
+		client = await AsyncClient.create(tld='us')
+		bm = BinanceSocketManager(client)
+		socket = bm.trade_socket('ADAUSD')
 		await socket.__aenter__()
 		msg = await socket.recv()
 		frame = createframe(msg)
 		frame.to_sql('ADAUSD', engine, if_exists='append', index = False)
 		print(frame)
+
+		await client.close_connection()
+
+if __name__ =="__main__":
+	loop = asyncio.get_event_loop()
+	loop.run_until_complete(main())
 
 
 #This will need to remain open and running while the strategy is running until closed.

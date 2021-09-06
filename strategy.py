@@ -1,17 +1,25 @@
-from bin import *
+import sqlalchemy
+import pandas as pd
+from binance.client import Client
+import config
 
+#Establish connection to Binance via API key
+client = Client(config.apiKey, config.apiSecurity, tld='us')
+print("Logged in!")
+
+engine = sqlalchemy.create_engine('sqlite:///ADAUSDstream.db')
 
 #Simple trendfollowing strategy
 #If crypto (ADAUSD) is rising by x%, place a buy market order
 #Exit when the profit is above 0.15% or loss is less than -0.15%
 def strategy(entry, lookback, qty, open_position=False):
 	while True:
-		df = df.read_sql('ADAUSD', engine)
+		df = pd.read_sql('ADAUSD', engine)
 		lookbackperiod = df.iloc[-lookback:]
 		cumret = (lookbackperiod.Price.pct_change() +1).cumprod() -1
 		if not open_position:
-			if comret[comret.last_valid_index()] > entry:
-				order = clinet.create_order(symbol='ADAUSD',
+			if cumret[cumret.last_valid_index()] > entry:
+				order = client.create_order(symbol='ADAUSD',
 					side = 'BUY',
 					type = 'MARKET',
 					quantity = qty)
@@ -33,3 +41,5 @@ def strategy(entry, lookback, qty, open_position=False):
 						quantity = qty)
 					print(order)
 					break
+
+strategy(0.001, 60, 9)
