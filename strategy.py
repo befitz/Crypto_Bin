@@ -1,5 +1,9 @@
 from bin import *
 
+
+#Simple trendfollowing strategy
+#If crypto (ADAUSD) is rising by x%, place a buy market order
+#Exit when the profit is above 0.15% or loss is less than -0.15%
 def strategy(entry, lookback, qty, open_position=False):
 	while True:
 		df = df.read_sql('ADAUSD', engine)
@@ -14,7 +18,7 @@ def strategy(entry, lookback, qty, open_position=False):
 				print(order)
 				open_position = True
 				break
-				
+
 	if open_position:
 		while True:
 			df = pd.read_sql('ADAUSD', engine)
