@@ -5,11 +5,14 @@ from binance.client import Client
 from binance import AsyncClient, BinanceSocketManager
 import config
 
+#Set this as the crypto to get prices for
+crypto_ticker = 'SOLUSD'
+
 #Establish connection to Binance via API key
 client = Client(config.apiKey, config.apiSecurity, tld='us')
 print("Logged in!")
 #Set up a SQL database to store timestamps and prices
-engine = sqlalchemy.create_engine('sqlite:///ADAUSDstream.db')
+engine = sqlalchemy.create_engine(f'sqlite:///{crypto_ticker}stream.db')
 
 #Creates a dataframe of the timestamps and prices by second
 def createframe(msg):
@@ -26,11 +29,11 @@ async def main():
 	while True:
 		client = await AsyncClient.create(tld='us')
 		bm = BinanceSocketManager(client)
-		socket = bm.trade_socket('ADAUSD')
+		socket = bm.trade_socket(crypto_ticker)
 		await socket.__aenter__()
 		msg = await socket.recv()
 		frame = createframe(msg)
-		frame.to_sql('ADAUSD', engine, if_exists='append', index = False)
+		frame.to_sql(crypto_ticker, engine, if_exists='append', index = False)
 		print(frame)
 
 		await client.close_connection()
