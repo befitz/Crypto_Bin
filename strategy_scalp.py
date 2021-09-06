@@ -25,7 +25,11 @@ def strategy_scalp(entry, lookback, open_position=False, qty=0):
 		if not open_position: 
 			if cumret[cumret.last_valid_index()] > entry:
 				qty = calculate_order_qty()
-				order = limit_buy_order(qty)
+				order = client.create_order(
+					symbol=crypto_ticker,
+					side = 'BUY',
+					type = 'MARKET',
+					quantity = qty)
 				print(order)
 				open_position = True
 				break
@@ -69,10 +73,12 @@ def limit_buy_order(qty):
 #function to generate a limit sell
 def limit_sell_order(qty):
 	latest_price = get_latest_price()
+	sell_price = latest_price*1.0015
+	sell_price = round(sell_price,3)
 	order = client.order_limit_sell(
 		symbol = crypto_ticker,
 		quantity = qty,
-		price = latest_price)
+		price = sell_price)
 	return order
 
 
