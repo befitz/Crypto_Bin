@@ -6,7 +6,7 @@ from binance import AsyncClient, BinanceSocketManager
 import config
 
 #Set this as the crypto to get prices for
-crypto_ticker = 'ALGOUSD'
+crypto_ticker = config.crypto_ticker
 
 #Establish connection to Binance via API key
 client = Client(config.apiKey, config.apiSecurity, tld='us')
