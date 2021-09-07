@@ -71,6 +71,18 @@ def strategy_scalp(entry, lookback, open_position=False, qty=0):
 
 #order output provies price, status, and order id
 
+#1. For a given ticker BTCUSD (for example).
+#2. Buy LIMIT order is placed for BTCUSD, it's not guaranteed to be filled.
+#2. Query Binance API, get the last known trade for ticker BTCUSD.
+#3. The last trade can either be a 'LIMIT buy', or an 'OCO sell'.
+#4. If the last known trade was a LIMIT buy, we check the order status.
+#5. If the order is OPEN, then we are still waiting for the buy order to fulfill. We can safely ignore it for now.  
+#  a. Alternatively, we can cancel the order if it was placed longer than n minutes ago. It did not fulfill in a timely fashion.
+#6. If the order is FILLED, that means we have not opened sell positions yet. We should do this immediately.
+#7. Create the OCO sell orders, calculating what price the limit and stop should be set at.
+#8. If the last known trade was not a LIMIT buy, then we have already opened sell positions. There is no need to take further action.
+#9. Move on to the next ticker.
+#10. This process runs every minute, so we will check the order status again soon.
 
 #Have this run once the order status = filled
 #request status of the order for x amount of time
