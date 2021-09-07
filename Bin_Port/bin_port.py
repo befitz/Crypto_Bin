@@ -1,7 +1,7 @@
 import xlwings
 import pandas as pd 
 from binance.client import Client
-from .. import config
+import config
 
 client = Client(config.apiKey, config.apiSecurity, tld='us')
 print("Logged in, leggo!")
