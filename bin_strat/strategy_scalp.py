@@ -1,4 +1,3 @@
-import sqlalchemy
 import pandas as pd
 from binance.client import Client
 import config
@@ -10,8 +9,38 @@ print("Logged in, leggo!")
 crypto_ticker = config.crypto_ticker
 USD_amount = config.USD_amount
 
-#Set up a SQL database to fetch timestamps and prices
-engine = sqlalchemy.create_engine(f'sqlite:///{crypto_ticker}stream.db')
+def map_klines_to_dataframe(klines):
+    converted_klines = []
+    for k in klines:
+        converted_klines.append({
+            "Time": k[0],
+            "Open": k[1],
+            "High": k[2],
+            "Low": k[3],
+            "Close": k[4],
+            "Volume": k[5],
+            "Close Time": k[6],
+            "Quote Asset Volume": k[7],
+            "Number of Trades": k[8],
+            "Taker Buy Base Asset Volume": k[9],
+            "Taker Buy Quote Asset Volume": k[10]
+        })
+    df = pd.DataFrame(converted_klines)
+    df.Time = pd.to_datetime(df.Time, unit='ms')
+    return df
+
+def klines_maped(limit):
+	price_hist = client.get_klines(symbol=crypto_ticker, interval=Client.KLINE_INTERVAL_1MINUTE, limit = limit)
+	df = map_klines_to_dataframe(price_hist)
+	return df
+
+
+df = klines_maped(61)
+df = df[["Time","Close","Volume"]]
+df.Close = df.Close.astype(float)
+df['ret'] = df['Close'].pct_change()
+print(df)
+
 
 #Simple trendfollowing strategy
 #If crypto (ADAUSD) is rising by x%, place a buy market order
@@ -19,9 +48,9 @@ engine = sqlalchemy.create_engine(f'sqlite:///{crypto_ticker}stream.db')
 #entry is the percentage change to initiate the entry
 def strategy_scalp(entry, lookback, open_position=False, qty=0):
 	while True:
-		df = pd.read_sql(crypto_ticker, engine)
+		df = klines_maped(61)
 		lookbackperiod = df.iloc[-lookback:]
-		cumret = (lookbackperiod.Price.pct_change() +1).cumprod() -1
+		cumret = (lookbackperiod.Close.pct_change() +1).cumprod() -1
 		if not open_position: 
 			if cumret[cumret.last_valid_index()] > entry:
 				qty = calculate_order_qty()
@@ -32,19 +61,31 @@ def strategy_scalp(entry, lookback, open_position=False, qty=0):
 					quantity = qty)
 				print(order)
 				open_position = True
+				#return order
 				break
 
+#Function to take order ID and query BinanceAPI for the order status
+#Query unitl status = 'FILLED'
+#Only then can we place a sell
+#for multiple tickers: either data storage of the orderIDs or time limit and cancel when exceeds time limit
+
+#order output provies price, status, and order id
+
+
+#Have this run once the order status = filled
+#request status of the order for x amount of time
 	if open_position:
 		while True:
-			df = pd.read_sql(crypto_ticker, engine)
+			df = klines_maped(61)
 			sincebuy = df.loc[df.Time > pd.to_datetime(order['transactTime'], unit = 'ms')]
 			if len(sincebuy) >1:
-				sincebuyret = (sincebuy.Price.pct_change() +1).cumprod() -1
+				sincebuyret = (sincebuy.Close.pct_change() +1).cumprod() -1
 				last_entry = sincebuyret[sincebuyret.last_valid_index()]
 				if last_entry > 0.0015 or last_entry <0.0015:
 					order = limit_sell_order(qty)
 					print(order)
 					break
+
 
 
 #Fletch the latest price
@@ -59,6 +100,7 @@ def calculate_order_qty():
 	qty = USD_amount/latest_price
 	qty = round(qty,2)
 	return qty
+
 
 #function to generate a limit buy and returns the quantiy and prints order details
 def limit_buy_order(qty):
@@ -80,6 +122,3 @@ def limit_sell_order(qty):
 		quantity = qty,
 		price = sell_price)
 	return order
-
-
-strategy_scalp(0.001,60)
