@@ -1,5 +1,7 @@
 import pandas as pd
-import config
+import resources.config as config
+from model import Order
+import logging as log
 import binance_client
 from binance.client import Client
 
@@ -51,33 +53,6 @@ def _calculate_order_qty(klines):
 	pass
 
 
-def _calculate_buy_price(klines):
-	"""
-	Determines what price shares should be purchased at, given a history.
-	Comment for brynne: Is this just the last known price?
-	Args:
-		klines (pd.DataFrame): the 60 minute price history for a given ticker.
-	Returns:
-		float: the price to purchase the shares at.
-	"""
-	pass
-
-
-def _place_limit_buy(symbol, qty, price):
-	"""
-	Function to generate a limit buy.
-	Args:
-		symbol (str): the ticker to place a buy limit for
-		qty (int): the amount of shares to purchase
-		price (float): the price to purchase the shares for
-	"""
-	order = client.order_limit_buy(
-		symbol = symbol,
-		quantity = qty,
-		price = price
-	)
-
-
 def _place_oco_sell(order):
 	"""
 	Given an order, place a OCO sell order good until cancelled.
@@ -95,6 +70,25 @@ def _handle_order_cancellation(order):
 	"""
 	pass
 
+def _attempt_limit_buy(symbol, price_history):
+	"""
+	Function to generate a limit buy.
+	Args:
+		symbol (str): the ticker to place a buy limit for
+		price_history (pandas.DataFrame): frame containing historical prices
+	"""
+	if price_history.empty:
+		return
+	order_quantity = _calculate_order_qty(price_history)
+	share_price = price_history['Close'].iloc[-1] # last closing price?
+	if order_quantity > 0:
+		client.order_limit_buy(
+			symbol = symbol,
+			quantity = order_quantity,
+			price = share_price
+		)
+		log.info('placed a buy request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
+
 
 def strategy(symbol, interval, limit):
 	"""
@@ -104,26 +98,30 @@ def strategy(symbol, interval, limit):
 		interval (int): the time interval between historic data points. (ex: 1m, 2h, 3d)
 		limit (int): the amount of historic price points to retrieve.
 	"""
-	#1. Query Binance API, get trading data for last 60 minutes.
+	# query Binance API, get trading data for last 60 minutes.
 	price_history = client.get_klines(symbol=symbol, interval=interval, limit=limit)
 	
 	price_history_df = _map_klines_to_dataframe(price_history)
 
-	#2. Query Binance API, get the last known trade for ticker.
+	# query Binance API, get the last known trade for ticker.
 	orders: list = client.get_all_orders(symbol, limit=1)
 
-	last_known_order = next(orders, None)
-	#4. If the last known trade was a LIMIT buy, we check the order status.
-	if last_known_order is not None and last_known_order['side'] == Client.SIDE_BUY:
-		status = last_known_order['status']
-		#5 If the order is FILLED, that means we have not opened sell positions yet. We should do this immediately.
-		if status == Client.ORDER_STATUS_FILLED:
-			return _place_oco_sell(last_known_order)
-		#5a. Alternatively, we can cancel the order if it was placed longer than n minutes ago.
-		if status == Client.ORDER_STATUS_NEW:
-			return _handle_order_cancellation(last_known_order)
+	# if no orders exist for this ticker, we should place a buy order.
+	if not orders:
+		_attempt_limit_buy(symbol, price_history_df)
+		return
 
-	#5. Last order must have been a SELL, cancelled BUY, or never existed, so assess an entrypoint to buy back in.
-	shares_to_buy = _calculate_order_qty(price_history_df)
-	if shares_to_buy > 0:
-		_place_limit_buy(symbol, shares_to_buy, _calculate_buy_price(price_history_df))
+	last_known_order = Order(orders[0])
+
+	if last_known_order.is_buy():
+		# if the order is FILLED, that means we have not opened sell positions yet.
+		if last_known_order.is_filled():
+			_place_oco_sell(last_known_order)
+			return
+		# alternatively, we can cancel the order if it was placed longer than n minutes ago.
+		if last_known_order.is_open():
+			_handle_order_cancellation(last_known_order)
+			return
+
+	# last order must have been a SELL or cancelled BUY so assess an entrypoint to buy back in.
+	_attempt_limit_buy(symbol, price_history_df)

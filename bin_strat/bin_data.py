@@ -4,7 +4,7 @@ import binance_client
 import asyncio
 from binance.client import Client
 from binance import AsyncClient, BinanceSocketManager
-import config
+import resources.config as config
 
 #Set this as the crypto to get prices for
 crypto_ticker = config.crypto_ticker

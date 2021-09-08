@@ -3,7 +3,7 @@ config.py
 *.db
 .DS_Store
 dev/
-
+env/
 .DS_Store
 .DS_Store
 Bin_Port/crypto_portfolio.xlsx
