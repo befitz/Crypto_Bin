@@ -1,136 +1,129 @@
 import pandas as pd
-from binance.client import Client
 import config
+import binance_client
+from binance.client import Client
 
-#Establish connection to Binance via API key
-client = Client(config.apiKey, config.apiSecurity, tld='us')
-print("Logged in, leggo!")
 
-crypto_ticker = config.crypto_ticker
 USD_amount = config.USD_amount
+crypto_ticker = config.crypto_ticker
 
-def map_klines_to_dataframe(klines):
-    converted_klines = []
-    for k in klines:
-        converted_klines.append({
-            "Time": k[0],
-            "Open": k[1],
-            "High": k[2],
-            "Low": k[3],
-            "Close": k[4],
-            "Volume": k[5],
-            "Close Time": k[6],
-            "Quote Asset Volume": k[7],
-            "Number of Trades": k[8],
-            "Taker Buy Base Asset Volume": k[9],
-            "Taker Buy Quote Asset Volume": k[10]
-        })
-    df = pd.DataFrame(converted_klines)
-    df.Time = pd.to_datetime(df.Time, unit='ms')
-    return df
+# Moved client definition to another module (so we can reuse it in bin_data.py)
+client = binance_client.get_binance_client()
 
-def klines_maped(limit):
-	price_hist = client.get_klines(symbol=crypto_ticker, interval=Client.KLINE_INTERVAL_1MINUTE, limit = limit)
-	df = map_klines_to_dataframe(price_hist)
+
+def _map_klines_to_dataframe(klines):
+	"""
+	Price information comes back as a list of raw values, which is not intuitive.
+	This function converts those values to a readable dataframe, with column titles for easy access.
+	Args:
+		klines (list): 2d matrix containing Kline/Candlestick price information.
+	Returns:
+		pd.DataFrame: A dataframe containing price information, with appropriate column titles.
+	"""
+	converted_klines = []
+	for k in klines:
+		converted_klines.append({
+			"Time": k[0],
+			"Open": k[1],
+			"High": k[2],
+			"Low": k[3],
+			"Close": k[4],
+			"Volume": k[5],
+			"Close Time": k[6],
+			"Quote Asset Volume": k[7],
+			"Number of Trades": k[8],
+			"Taker Buy Base Asset Volume": k[9],
+			"Taker Buy Quote Asset Volume": k[10]
+		})
+	df = pd.DataFrame(converted_klines)
+	df.Time = pd.to_datetime(df.Time, unit='ms')
 	return df
 
 
-df = klines_maped(61)
-df = df[["Time","Close","Volume"]]
-df.Close = df.Close.astype(float)
-df['ret'] = df['Close'].pct_change()
-print(df)
+def _calculate_order_qty(klines):
+	"""
+	Determines how many shares should be purchased given a price history.
+	Args:
+		klines (pd.DataFrame): the 60 minute price history for a given ticker.
+	Returns:
+		int: the amount of shares that should be purchased, 0 if none.
+	"""
+	pass
 
 
-#Simple trendfollowing strategy
-#If crypto (ADAUSD) is rising by x%, place a buy market order
-#Exit when the profit is above 0.15% or loss is less than -0.15%
-#entry is the percentage change to initiate the entry
-def strategy_scalp(entry, lookback, open_position=False, qty=0):
-	while True:
-		df = klines_maped(61)
-		lookbackperiod = df.iloc[-lookback:]
-		cumret = (lookbackperiod.Close.pct_change() +1).cumprod() -1
-		if not open_position: 
-			if cumret[cumret.last_valid_index()] > entry:
-				qty = calculate_order_qty()
-				order = client.create_order(
-					symbol=crypto_ticker,
-					side = 'BUY',
-					type = 'MARKET',
-					quantity = qty)
-				print(order)
-				open_position = True
-				#return order
-				break
-
-#Function to take order ID and query BinanceAPI for the order status
-#Query unitl status = 'FILLED'
-#Only then can we place a sell
-#for multiple tickers: either data storage of the orderIDs or time limit and cancel when exceeds time limit
-
-#order output provies price, status, and order id
-
-#1. For a given ticker BTCUSD (for example).
-#2. Buy LIMIT order is placed for BTCUSD, it's not guaranteed to be filled.
-#2. Query Binance API, get the last known trade for ticker BTCUSD.
-#3. The last trade can either be a 'LIMIT buy', or an 'OCO sell'.
-#4. If the last known trade was a LIMIT buy, we check the order status.
-#5. If the order is OPEN, then we are still waiting for the buy order to fulfill. We can safely ignore it for now.  
-#  a. Alternatively, we can cancel the order if it was placed longer than n minutes ago. It did not fulfill in a timely fashion.
-#6. If the order is FILLED, that means we have not opened sell positions yet. We should do this immediately.
-#7. Create the OCO sell orders, calculating what price the limit and stop should be set at.
-#8. If the last known trade was not a LIMIT buy, then we have already opened sell positions. There is no need to take further action.
-#9. Move on to the next ticker.
-#10. This process runs every minute, so we will check the order status again soon.
-
-#Have this run once the order status = filled
-#request status of the order for x amount of time
-	if open_position:
-		while True:
-			df = klines_maped(61)
-			sincebuy = df.loc[df.Time > pd.to_datetime(order['transactTime'], unit = 'ms')]
-			if len(sincebuy) >1:
-				sincebuyret = (sincebuy.Close.pct_change() +1).cumprod() -1
-				last_entry = sincebuyret[sincebuyret.last_valid_index()]
-				if last_entry > 0.0015 or last_entry <0.0015:
-					order = limit_sell_order(qty)
-					print(order)
-					break
+def _calculate_buy_price(klines):
+	"""
+	Determines what price shares should be purchased at, given a history.
+	Comment for brynne: Is this just the last known price?
+	Args:
+		klines (pd.DataFrame): the 60 minute price history for a given ticker.
+	Returns:
+		float: the price to purchase the shares at.
+	"""
+	pass
 
 
-
-#Fletch the latest price
-def get_latest_price():
-	df = pd.read_sql(crypto_ticker, engine)
-	latest_price = df.iloc[-1].Price
-	return latest_price
-
-#calculate the quantity of the crypto to buy based on the USD amount and latest price
-def calculate_order_qty():
-	latest_price = get_latest_price()
-	qty = USD_amount/latest_price
-	qty = round(qty,2)
-	return qty
-
-
-#function to generate a limit buy and returns the quantiy and prints order details
-def limit_buy_order(qty):
-	latest_price = get_latest_price()
+def _place_limit_buy(symbol, qty, price):
+	"""
+	Function to generate a limit buy and returns the quantiy and prints order details
+	Args:
+		symbol (str): the ticker to place a buy limit for
+		qty (int): the amount of shares to purchase
+		price (float): the price to purchase the shares for
+	"""
 	order = client.order_limit_buy(
-		symbol = crypto_ticker,
+		symbol = symbol,
 		quantity = qty,
-		price = latest_price)
-	return order
+		price = price
+	)
 
 
-#function to generate a limit sell
-def limit_sell_order(qty):
-	latest_price = get_latest_price()
-	sell_price = latest_price*1.0015
-	sell_price = round(sell_price,3)
-	order = client.order_limit_sell(
-		symbol = crypto_ticker,
-		quantity = qty,
-		price = sell_price)
-	return order
+def _place_oco_sell(order):
+	"""
+	Given an order, place a OCO sell order good until cancelled.
+	Args:
+		order (dict): The binance api order response
+	"""
+	pass
+
+
+def _handle_order_cancellation(order):
+	"""
+	Sends an order cancellation request if the order should be cancelled.
+	Args:
+		order (dict): The binance api order response
+	"""
+	pass
+
+
+def strategy(symbol, interval, limit):
+	"""
+	Main trading strategy to execute!
+	Args:
+		symbol (str): the coin ticker to act on
+		interval (int): the time interval between historic data points. (ex: 1m, 2h, 3d)
+		limit (int): the amount of historic price points to retrieve.
+	"""
+	#1. Query Binance API, get trading data for last 60 minutes.
+	price_history = client.get_klines(symbol=symbol, interval=interval, limit=limit)
+	
+	price_history_df = _map_klines_to_dataframe(price_history)
+
+	#2. Query Binance API, get the last known trade for ticker.
+	orders = client.get_all_orders(symbol, limit=1)
+
+	last_known_order = next(orders, None)
+	#4. If the last known trade was a LIMIT buy, we check the order status.
+	if last_known_order is not None and last_known_order['side'] == Client.SIDE_BUY:
+		status = last_known_order['status']
+		#5 If the order is FILLED, that means we have not opened sell positions yet. We should do this immediately.
+		if status == Client.ORDER_STATUS_FILLED:
+			return _place_oco_sell(last_known_order)
+		#5a. Alternatively, we can cancel the order if it was placed longer than n minutes ago.
+		elif status == Client.ORDER_STATUS_NEW:
+			return _handle_order_cancellation(last_known_order)
+
+	#5. Last order must have been a SELL, cancelled BUY, or never existed, so assess an entrypoint to buy back in.
+	shares_to_buy = _calculate_order_qty(price_history_df)
+	if shares_to_buy > 0:
+		_place_limit_buy(symbol, shares_to_buy, _calculate_buy_price(price_history_df))
