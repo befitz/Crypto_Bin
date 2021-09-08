@@ -120,7 +120,7 @@ def strategy(symbol, interval, limit):
 		if status == Client.ORDER_STATUS_FILLED:
 			return _place_oco_sell(last_known_order)
 		#5a. Alternatively, we can cancel the order if it was placed longer than n minutes ago.
-		elif status == Client.ORDER_STATUS_NEW:
+		if status == Client.ORDER_STATUS_NEW:
 			return _handle_order_cancellation(last_known_order)
 
 	#5. Last order must have been a SELL, cancelled BUY, or never existed, so assess an entrypoint to buy back in.
