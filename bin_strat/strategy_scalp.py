@@ -1,13 +1,8 @@
 import pandas as pd
-import resources.config as config
-from model import Order
 import logging as log
 import binance_client
 from binance.client import Client
 
-
-USD_amount = config.USD_amount
-crypto_ticker = config.crypto_ticker
 
 # Moved client definition to another module (so we can reuse it in bin_data.py)
 client = binance_client.get_binance_client()
@@ -79,14 +74,13 @@ def _attempt_limit_buy(symbol, price_history):
 	"""
 	if price_history.empty:
 		return
+
 	order_quantity = _calculate_order_qty(price_history)
+
 	share_price = price_history['Close'].iloc[-1] # last closing price?
+
 	if order_quantity > 0:
-		client.order_limit_buy(
-			symbol = symbol,
-			quantity = order_quantity,
-			price = share_price
-		)
+		# TODO place a limit buy here!
 		log.info('placed a buy request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
 
 
@@ -104,22 +98,20 @@ def strategy(symbol, interval, limit):
 	price_history_df = _map_klines_to_dataframe(price_history)
 
 	# query Binance API, get the last known trade for ticker.
-	orders: list = client.get_all_orders(symbol, limit=1)
+	last_known_order = next(client.get_all_orders(symbol, limit=1), None)
 
 	# if no orders exist for this ticker, we should place a buy order.
-	if not orders:
+	if not last_known_order:
 		_attempt_limit_buy(symbol, price_history_df)
 		return
 
-	last_known_order = Order(orders[0])
-
-	if last_known_order.is_buy():
+	if last_known_order['side'] == Client.SIDE_BUY:
 		# if the order is FILLED, that means we have not opened sell positions yet.
-		if last_known_order.is_filled():
+		if last_known_order['status'] == Client.STATUS_FILLED:
 			_place_oco_sell(last_known_order)
 			return
 		# alternatively, we can cancel the order if it was placed longer than n minutes ago.
-		if last_known_order.is_open():
+		if last_known_order['status'] == Client.STATUS_NEW:
 			_handle_order_cancellation(last_known_order)
 			return
 

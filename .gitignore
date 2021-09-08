@@ -1,4 +1,5 @@
 config.py
+local-config.yml
 *.pyc
 *.db
 .DS_Store
