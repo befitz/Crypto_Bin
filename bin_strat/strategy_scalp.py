@@ -65,7 +65,7 @@ def _calculate_buy_price(klines):
 
 def _place_limit_buy(symbol, qty, price):
 	"""
-	Function to generate a limit buy and returns the quantiy and prints order details
+	Function to generate a limit buy.
 	Args:
 		symbol (str): the ticker to place a buy limit for
 		qty (int): the amount of shares to purchase
@@ -110,7 +110,7 @@ def strategy(symbol, interval, limit):
 	price_history_df = _map_klines_to_dataframe(price_history)
 
 	#2. Query Binance API, get the last known trade for ticker.
-	orders = client.get_all_orders(symbol, limit=1)
+	orders: list = client.get_all_orders(symbol, limit=1)
 
 	last_known_order = next(orders, None)
 	#4. If the last known trade was a LIMIT buy, we check the order status.
