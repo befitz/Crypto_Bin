@@ -1,4 +1,10 @@
 config.py
+local-config.yml
 *.pyc
 *.db
-*.DS_Store
+.DS_Store
+dev/
+env/
+.DS_Store
+.DS_Store
+Bin_Port/crypto_portfolio.xlsx

@@ -1,16 +1,17 @@
 import pandas as pd 
 import sqlalchemy
+import binance_client
 import asyncio
 from binance.client import Client
 from binance import AsyncClient, BinanceSocketManager
-import config
+import resources.config as config
 
 #Set this as the crypto to get prices for
-crypto_ticker = 'ALGOUSD'
+crypto_ticker = config.crypto_ticker
 
 #Establish connection to Binance via API key
-client = Client(config.apiKey, config.apiSecurity, tld='us')
-print("Logged in!")
+client = binance_client.get_binance_client()
+
 #Set up a SQL database to store timestamps and prices
 engine = sqlalchemy.create_engine(f'sqlite:///{crypto_ticker}stream.db')
 
