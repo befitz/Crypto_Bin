@@ -92,7 +92,7 @@ def strategy(symbol, interval, limit):
 		interval (int): the time interval between historic data points. (ex: 1m, 2h, 3d)
 		limit (int): the amount of historic price points to retrieve.
 	"""
-	# query Binance API, get trading data for last 60 minutes.
+	# query Binance API, get trading data for last limit hours.
 	price_history = client.get_klines(symbol=symbol, interval=interval, limit=limit)
 	
 	price_history_df = _map_klines_to_dataframe(price_history)
