@@ -2,15 +2,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from binance.client import Client
+import binance_client
 import datetime as dt
-import config
+import resources.config as config
 
 #Establish connection to Binance via API key
-client = Client(config.apiKey, config.apiSecurity, tld='us')
-print("Logged in, leggo!")
+client = binance_client.get_binance_client()
 
-crypto_ticker = config.crypto_ticker
-USD_amount = config.USD_amount
+#crypto_ticker = config.crypto_ticker
+#USD_amount = config.USD_amount
 lookback = 200
 
 def map_klines_to_dataframe(klines):
@@ -35,14 +35,15 @@ def map_klines_to_dataframe(klines):
     df.Time = df.Time.dt.tz_convert('US/Eastern') #To set the timezone
     return df
 
-def klines_maped(lookback):
+def klines_maped(lookback, crypto_ticker):
     price_hist = client.get_klines(symbol=crypto_ticker, interval=Client.KLINE_INTERVAL_2HOUR, limit = lookback)
     df = map_klines_to_dataframe(price_hist)
     return df
 
 
-def prep_df():
-    df = klines_maped(lookback)
+def prep_df(crypto_ticker):
+    crypto_ticker = crypto_ticker
+    df = klines_maped(lookback, crypto_ticker)
     df = df[["Time","Close","Volume"]]
     df.Close = df.Close.astype(float)
     df['ret_pct_change'] = df['Close'].pct_change()
@@ -125,8 +126,8 @@ def plot_results(macddf):
     plt.title('MACD Strategy Results')
     plt.show()
 
-def strat_test_results():
-    df = prep_df()
+def strat_test_results(crypto_ticker):
+    df = prep_df(crypto_ticker)
     macddf = MACD_strat(df)
     num_trades_executed = len(macddf[macddf['entry_exit_signal'] !=0])
     potential_gains = df['potential_gains'].sum()
@@ -137,4 +138,4 @@ def strat_test_results():
     print("Lookback period:", lookback)
     plot_results(macddf)
 
-strat_test_results()
+strat_test_results('ALGOUSD')
