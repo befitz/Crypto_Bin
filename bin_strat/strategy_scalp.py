@@ -48,7 +48,7 @@ def _calculate_order_qty(klines):
 	pass
 
 
-def _place_oco_sell(order):
+def _place_limit_sell(order):
 	"""
 	Given an order, place a OCO sell order good until cancelled.
 	Args:
@@ -108,7 +108,7 @@ def strategy(symbol, interval, limit):
 	if last_known_order['side'] == Client.SIDE_BUY:
 		# if the order is FILLED, that means we have not opened sell positions yet.
 		if last_known_order['status'] == Client.STATUS_FILLED:
-			_place_oco_sell(last_known_order)
+			_place_limit_sell(last_known_order)
 			return
 		# alternatively, we can cancel the order if it was placed longer than n minutes ago.
 		if last_known_order['status'] == Client.STATUS_NEW:
