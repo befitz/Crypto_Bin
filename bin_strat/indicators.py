@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import IntFlag
 
-class TradingSignal(Enum):
+class TradingSignal(IntFlag):
     BUY = 1
     SELL = -1
     HOLD = 0
@@ -19,70 +19,74 @@ def macd_signal(price_history):
     Returns:
         TradingSignal: the signal to sell (TradingSignal.SELL), buy (TradingSignal.BUY), or do nothing (TradingSignal.HOLD)
     """
-    pass
+    price_history_macd = _MACD_calc(price_history)
+    macd_signal = _MACD_strat(price_history_macd)
+    latest_signal = macd_signal['buy_sell_signal'].iloc[-1]
+
+    return latest_signal
 
 
 def _MACD_calc(price_history):
     """
     Calculates the MACD line and signal line
-    Args:
-        price_history (pd.DataFrame): the historical price data for a given asset
-    Returns:
-        price_history_macd (pd.DataFrame) with  columns ['Close', 'ret_pct_change', 'MACD', 'signal', 'go_long', 'potential_gains']
+    Args: price_history (pd.DataFrame): the historical price data for a given asset
+    Returns: price_history_macd (pd.DataFrame) with  columns ['Close', 'ret_pct_change', 'MACD', 'signal', 'go_long', 'potential_gains']
     """
-    k = price_history['Close'].ewm(span=12, adjust=False, min_periods=12).mean() # Get the 26-day EMA of the closing price
-    d = price_history['Close'].ewm(span=26, adjust=False, min_periods=26).mean() # Get the 12-day EMA of the closing price
+    k = price_history['Close'].ewm(span=10, adjust=False, min_periods=12).mean() # Get the 26-day EMA of the closing price
+    d = price_history['Close'].ewm(span=19, adjust=False, min_periods=26).mean() # Get the 12-day EMA of the closing price
     macd = k - d # Subtract the 26-day EMA from the 12-Day EMA to get the MACD
-    macd_s = macd.ewm(span=9, adjust=False, min_periods=9).mean() # Get the 9-Day EMA of the MACD for the Trigger line
-    
-    price_history_macd = pd.DataFrame()
-    price_history_macd['Close'] = price_history['Close']
-    price_history_macd['ret_pct_change'] = price_history['Close'].pct_change()
-    price_history_macd['MACD'] = macd 
+    macd_s = macd.ewm(span=6, adjust=False, min_periods=9).mean() # Get the 9-Day EMA of the MACD for the Trigger line
+    price_history_macd = price_history
+    price_history_macd['MACD'] = macd
     price_history_macd['signal'] = macd_s
-    long = [] #Creating a 'long' list to be converted to pd.Series which will be 0 for short, 1 for long
-    for i in range(0,len(price_history_macd)):
-        if price_history_macd.MACD[i] > price_history_macd.signal[i]: #Long potental where price is above the 9 day moving average
-            long.append(1)
-        else:
-            long.append(0) #Short where price is not above the 9 day moving average
-    price_history_macd['go_long'] = long
-    price_history_macd['potential_gains'] = price_history_macd.ret_pct_change * price_history_macd.go_long #Column to provide the potential gains if long on the asset
 
     return price_history_macd
 
 
-        flag = 0
-    entry_exit = []
+def _MACD_strat(price_history_macd):
+    """
+    Function to create the buy_sell_signal: 0 for hold, 1 for buy, -1 for sell. Will use TradingSignal
+    Logic: if MACD > signal then buy, if MACD < signal then sell
+    args: price_history_macd (pd.DataFrame)
+    returns: macd_signal (pd.DataFrame) and latest_signal 
+    """
+    flag = 0 
+    buy_sell_signal = []
     entry_price = []
     exit_price = []
-    for i in range(0,len(macddf)):
-        if i != 0:
-            if macddf.go_long[i] == 1:
-                if macddf.go_long[i-1] == 0:
-                    entry_exit.append(1)
-                    entry_price.append(macddf['Close'][i])
-                    exit_price.append(np.NaN)
-                else:
-                    entry_exit.append(0)
-                    entry_price.append(np.NaN)
-                    exit_price.append(np.NaN)
-            elif macddf.go_long[i] == 0:
-                if macddf.go_long[i-1] == 1:
-                    entry_exit.append(-1)
-                    exit_price.append(macddf['Close'][i])
-                    entry_price.append(np.NaN)
-                else:
-                    entry_exit.append(0)
-                    entry_price.append(np.NaN)
-                    exit_price.append(np.NaN)
-        else:
-            entry_exit.append(0)
-            exit_price.append(np.NaN)
+    for i in range(0,len(price_history_macd)):
+        if price_history_macd.MACD[i] > price_history_macd.signal[i]: #buy if previous indicator is hold(0)
+            if flag != 1:
+                buy_sell_signal.append(TradingSignal.BUY)
+                entry_price.append(price_history_macd['Close'][i])
+                exit_price.append(np.NaN)
+                flag = 1
+            else:
+                buy_sell_signal.append(TradingSignal.HOLD)
+                entry_price.append(np.NaN)
+                exit_price.append(np.NaN)
+                TS = TradingSignal.HOLD
+                flag = 1
+        elif price_history_macd.MACD[i] < price_history_macd.signal[i]:
+            if flag != 0:
+                buy_sell_signal.append(TradingSignal.SELL)
+                entry_price.append(np.NAN)
+                exit_price.append(price_history_macd['Close'][i])
+                flag = 0
+            else:
+                buy_sell_signal.append(TradingSignal.HOLD)
+                entry_price.append(np.NaN)
+                exit_price.append(np.NaN)
+                flag = 0
+        else: #handle nan values
+            buy_sell_signal.append(TradingSignal.HOLD)
             entry_price.append(np.NaN)
+            exit_price.append(np.NaN)
 
-    macddf['entry_exit_signal'] = entry_exit
-    macddf['entry_price'] = entry_price
-    macddf['exit_price'] = exit_price
+    macd_signal = pd.DataFrame(price_history_macd[['Time','Close']])
+    macd_signal['buy_sell_signal'] = buy_sell_signal
+    macd_signal['entry_price'] = entry_price
+    macd_signal['exit_price'] = exit_price
+
 
     return macd_signal
