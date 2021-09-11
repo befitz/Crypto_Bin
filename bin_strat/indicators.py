@@ -48,7 +48,7 @@ def _MACD_strat(price_history_macd):
     Function to create the buy_sell_signal: 0 for hold, 1 for buy, -1 for sell. Will use TradingSignal
     Logic: if MACD > signal then buy, if MACD < signal then sell
     args: price_history_macd (pd.DataFrame)
-    returns: macd_signal (pd.DataFrame) and latest_signal 
+    returns: macd_signal (pd.DataFrame)
     """
     flag = 0 
     buy_sell_signal = []
