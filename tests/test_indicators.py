@@ -24,17 +24,16 @@ def test_macd_calc():
 	return macd_calc_test_result
 
 
+class TestIndicator(unittest.TestCase):
 
-def test_macd_signal():
-	"""
-	This function will test the retun of a 0 from macd_signal. The input is the 'price_history_test.csv' which has an increasing price for the past 49 intervals so expected result is a HOLD (0) trading signal
-	"""
-	price_history = pd.read_csv('price_history_test.csv')
-	expected_result = 0 
-	latest_signal = indicators.macd_signal(price_history)
-	test_result = assertEqual(latest_signal, expected_result)
-
-	return test_result
-
-
-test_result = test_macd_signal()
+	def test_macd_signal(self):
+		"""
+		This function will test the retun of a 0 from macd_signal. The input is the 'price_history_test.csv' which has an increasing price for the past 49 intervals so expected result is a HOLD (0) trading signal
+		"""
+		price_history = pd.read_csv('price_history_test.csv')
+		expected_result = 0 
+		latest_signal = indicators.macd_signal(price_history)
+		self.assertEqual(latest_signal, expected_result)
+		
+if __name__ == '__main__':
+	unittest.main()
