@@ -2,6 +2,7 @@ import pandas as pd
 import logging as log
 import binance_client
 from binance.client import Client
+import datetime as dt
 
 
 # Moved client definition to another module (so we can reuse it in bin_data.py)
