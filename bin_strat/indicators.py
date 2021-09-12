@@ -1,4 +1,6 @@
 from enum import IntFlag
+import pandas as pd
+import numpy as np
 
 class TradingSignal(IntFlag):
     BUY = 1
@@ -32,10 +34,10 @@ def _MACD_calc(price_history):
     Args: price_history (pd.DataFrame): the historical price data for a given asset
     Returns: price_history_macd (pd.DataFrame) with  columns ['Close', 'ret_pct_change', 'MACD', 'signal', 'go_long', 'potential_gains']
     """
-    k = price_history['Close'].ewm(span=10, adjust=False, min_periods=12).mean() # Get the 26-day EMA of the closing price
-    d = price_history['Close'].ewm(span=19, adjust=False, min_periods=26).mean() # Get the 12-day EMA of the closing price
+    k = price_history['Close'].ewm(span=10, adjust=False).mean() # Get the 26-day EMA of the closing price
+    d = price_history['Close'].ewm(span=19, adjust=False).mean() # Get the 12-day EMA of the closing price
     macd = k - d # Subtract the 26-day EMA from the 12-Day EMA to get the MACD
-    macd_s = macd.ewm(span=6, adjust=False, min_periods=9).mean() # Get the 9-Day EMA of the MACD for the Trigger line
+    macd_s = macd.ewm(span=6, adjust=False).mean() # Get the 9-Day EMA of the MACD for the Trigger line
     price_history_macd = price_history
     price_history_macd['MACD'] = macd
     price_history_macd['signal'] = macd_s
