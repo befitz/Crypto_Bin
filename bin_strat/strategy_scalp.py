@@ -34,6 +34,11 @@ def _map_klines_to_dataframe(klines):
 		})
 	df = pd.DataFrame(converted_klines)
 	df.Time = pd.to_datetime(df.Time, unit='ms')
+	df.Time = df.Time.dt.tz_localize('UTC') #To recognize timezones
+    df.Time = df.Time.dt.tz_convert('US/Eastern') #To set the timezone
+    df = df[["Time","Close","Volume"]]
+    df.Close = df.Close.astype(float)
+
 	return df
 
 
