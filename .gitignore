@@ -9,3 +9,5 @@ env/
 .DS_Store
 Bin_Port/crypto_portfolio.xlsx
 bin_strat/resources/
+Bin_Port/crypto_portfolio.xlsx
+*.xlsx
