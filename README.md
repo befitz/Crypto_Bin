@@ -45,7 +45,8 @@
 
 1. Binance has limitations to precision size of the price.
  - the below code retreives the percisions for both price and quantity
- `def get_percision_size(crypto_ticker):
+ ```
+def get_percision_size(crypto_ticker):
 	"""
 	Binance order API requires different percision amounts for each asset
 	args: crypto_ticker (string) ex: BTCUSD
@@ -58,8 +59,9 @@
 	base_asset = symbol_info['baseAsset']
 	asset_percision = symbol_info['baseAssetPrecision']
 	quote_percision = symbol_info['quoteAssetPrecision']
+	
 	return base_asset, asset_percision, quote_percision
- `
+ ```
 2. Retreiving price using the order book
 - Once we have the precision, then we can retreive the bids and asks 
 `
