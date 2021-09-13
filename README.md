@@ -1,8 +1,8 @@
 # Crypto_Bin
 
-##Flow
+## Flow
 
-###First Trade
+### First Trade
 1. For a security *that has not been traded*
 2. Program runs at the top of an hour (2hour intervals)
 3. Start by fetching historical data.
@@ -15,7 +15,7 @@
 	7. c. Place limit buy order (time limit?)
 
 
-###Not First Trade
+### Not First Trade
 1. For a security that has been traded previously.
 2. Still on a 2 hour interval
 3. Pull last known order
