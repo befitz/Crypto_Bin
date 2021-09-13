@@ -10,7 +10,7 @@
 5. If action is HOLD, exit function
 6. If action is SELL, exit function
 7. If action is BUY,
-	7. a. Calculate price to purchase
+> a. Calculate price to purchase
 	7. b. Calculate quantiy based on price
 	7. c. Place limit buy order (time limit?)
 
