@@ -54,41 +54,28 @@ def _MACD_strat(price_history_macd):
     """
     flag = 0 
     buy_sell_signal = []
-    entry_price = []
-    exit_price = []
     for i in range(0,len(price_history_macd)):
         if price_history_macd.MACD[i] > price_history_macd.signal[i]: #buy if previous indicator is hold(0)
             if flag != 1:
                 buy_sell_signal.append(TradingSignal.BUY)
-                entry_price.append(price_history_macd['Close'][i])
-                exit_price.append(np.NaN)
                 flag = 1
             else:
                 buy_sell_signal.append(TradingSignal.HOLD)
-                entry_price.append(np.NaN)
-                exit_price.append(np.NaN)
                 TS = TradingSignal.HOLD
                 flag = 1
         elif price_history_macd.MACD[i] < price_history_macd.signal[i]:
             if flag != 0:
                 buy_sell_signal.append(TradingSignal.SELL)
-                entry_price.append(np.NAN)
-                exit_price.append(price_history_macd['Close'][i])
                 flag = 0
             else:
                 buy_sell_signal.append(TradingSignal.HOLD)
-                entry_price.append(np.NaN)
-                exit_price.append(np.NaN)
                 flag = 0
         else: #handle nan values
             buy_sell_signal.append(TradingSignal.HOLD)
-            entry_price.append(np.NaN)
-            exit_price.append(np.NaN)
+
 
     macd_signal = pd.DataFrame(price_history_macd[['Time','Close']])
     macd_signal['buy_sell_signal'] = buy_sell_signal
-    macd_signal['entry_price'] = entry_price
-    macd_signal['exit_price'] = exit_price
 
 
     return macd_signal
