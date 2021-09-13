@@ -45,7 +45,7 @@
 
 1. Binance has limitations to precision size of the price.
  - the below code retreives the percisions for both price and quantity
- ```
+```
 def get_percision_size(crypto_ticker):
 	"""
 	Binance order API requires different percision amounts for each asset
