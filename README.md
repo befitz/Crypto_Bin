@@ -64,7 +64,7 @@ def get_percision_size(crypto_ticker):
  ```
 2. Retreiving price using the order book
 - Once we have the precision, then we can retreive the bids and asks 
-`
+```
 def bid_ask_spread(crypto_ticker, ask_percentile = 5, bid_percentile = 95):
 	"""
 	Function to look at the Binance API order book for the latest bid/asks
@@ -87,9 +87,9 @@ def bid_ask_spread(crypto_ticker, ask_percentile = 5, bid_percentile = 95):
 	bids = data[data['side'] == 'bids']
 	p_bids = np.percentile(bids.price, bid_percentile)
 	return p_asks, p_bids
-	`
+```
 - This would be the main function to tie it together...
-`
+```
 def get_limit_price(crypto_ticker, quote_percision, side):
 	"""
 	Function to get the latest price using the bid ask spread
@@ -111,4 +111,4 @@ def get_limit_price(crypto_ticker, quote_percision, side):
 	limit_price = context.create_decimal_from_float(limit_price)
 	limit_price = str(limit_price)
 	return limit_price
-`
+```
