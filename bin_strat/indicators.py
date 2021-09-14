@@ -62,14 +62,12 @@ def _MACD_strat(price_history_macd):
             else:
                 buy_sell_signal.append(TradingSignal.HOLD)
                 TS = TradingSignal.HOLD
-                flag = 1
         elif price_history_macd.MACD[i] < price_history_macd.signal[i]:
             if flag != 0:
                 buy_sell_signal.append(TradingSignal.SELL)
                 flag = 0
             else:
                 buy_sell_signal.append(TradingSignal.HOLD)
-                flag = 0
         else: #handle nan values
             buy_sell_signal.append(TradingSignal.HOLD)
 
