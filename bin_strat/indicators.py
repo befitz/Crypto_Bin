@@ -1,11 +1,12 @@
 from enum import IntFlag
 import pandas as pd
-import numpy as np
+
 
 class TradingSignal(IntFlag):
     BUY = 1
     SELL = -1
     HOLD = 0
+
 
 def macd_signal(price_history):
     """
@@ -31,8 +32,10 @@ def macd_signal(price_history):
 def _MACD_calc(price_history):
     """
     Calculates the MACD line and signal line
-    Args: price_history (pd.DataFrame): the historical price data for a given asset
-    Returns: price_history_macd (pd.DataFrame) with  columns ['Close', 'ret_pct_change', 'MACD', 'signal', 'go_long', 'potential_gains']
+    Args: 
+        price_history (pd.DataFrame): the historical price data for a given asset
+    Returns: 
+        price_history_macd (pd.DataFrame) with columns ['Close', 'ret_pct_change', 'MACD', 'signal', 'go_long', 'potential_gains']
     """
     k = price_history['Close'].ewm(span=10, adjust=False).mean() # Get the 26-day EMA of the closing price
     d = price_history['Close'].ewm(span=19, adjust=False).mean() # Get the 12-day EMA of the closing price
@@ -49,8 +52,10 @@ def _MACD_strat(price_history_macd):
     """
     Function to create the buy_sell_signal: 0 for hold, 1 for buy, -1 for sell. Will use TradingSignal
     Logic: if MACD > signal then buy, if MACD < signal then sell
-    args: price_history_macd (pd.DataFrame)
-    returns: macd_signal (pd.DataFrame)
+    Args: 
+        price_history_macd (pd.DataFrame)
+    Returns: 
+        pd.DataFrame: the macd signal
     """
     flag = 0 
     buy_sell_signal = []
@@ -61,7 +66,6 @@ def _MACD_strat(price_history_macd):
                 flag = 1
             else:
                 buy_sell_signal.append(TradingSignal.HOLD)
-                TS = TradingSignal.HOLD
         elif price_history_macd.MACD[i] < price_history_macd.signal[i]:
             if flag != 0:
                 buy_sell_signal.append(TradingSignal.SELL)
@@ -74,6 +78,5 @@ def _MACD_strat(price_history_macd):
 
     macd_signal = pd.DataFrame(price_history_macd[['Time','Close']])
     macd_signal['buy_sell_signal'] = buy_sell_signal
-
 
     return macd_signal

@@ -1,10 +1,7 @@
 import unittest
-import sys
-
+import pandas as pd 
 from bin_strat.indicators import macd_signal
 
-import pandas as pd 
-import numpy as np
 
 class TestIndicator(unittest.TestCase):
 
