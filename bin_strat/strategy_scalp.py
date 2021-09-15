@@ -2,6 +2,7 @@ import pandas as pd
 import logging as log
 import binance_client
 from binance.client import Client
+import datetime as dt
 
 
 # Moved client definition to another module (so we can reuse it in bin_data.py)
@@ -34,6 +35,11 @@ def _map_klines_to_dataframe(klines):
 		})
 	df = pd.DataFrame(converted_klines)
 	df.Time = pd.to_datetime(df.Time, unit='ms')
+	df.Time = df.Time.dt.tz_localize('UTC') #To recognize timezones
+    df.Time = df.Time.dt.tz_convert('US/Eastern') #To set the timezone
+    df = df[["Time","Close","Volume"]]
+    df.Close = df.Close.astype(float)
+
 	return df
 
 
@@ -48,7 +54,7 @@ def _calculate_order_qty(klines):
 	pass
 
 
-def _place_oco_sell(order):
+def _place_limit_sell(order):
 	"""
 	Given an order, place a OCO sell order good until cancelled.
 	Args:
@@ -92,7 +98,7 @@ def strategy(symbol, interval, limit):
 		interval (int): the time interval between historic data points. (ex: 1m, 2h, 3d)
 		limit (int): the amount of historic price points to retrieve.
 	"""
-	# query Binance API, get trading data for last 60 minutes.
+	# query Binance API, get trading data for last limit hours.
 	price_history = client.get_klines(symbol=symbol, interval=interval, limit=limit)
 	
 	price_history_df = _map_klines_to_dataframe(price_history)
@@ -108,7 +114,7 @@ def strategy(symbol, interval, limit):
 	if last_known_order['side'] == Client.SIDE_BUY:
 		# if the order is FILLED, that means we have not opened sell positions yet.
 		if last_known_order['status'] == Client.STATUS_FILLED:
-			_place_oco_sell(last_known_order)
+			_place_limit_sell(last_known_order)
 			return
 		# alternatively, we can cancel the order if it was placed longer than n minutes ago.
 		if last_known_order['status'] == Client.STATUS_NEW:

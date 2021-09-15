@@ -3,8 +3,13 @@ local-config.yml
 *.pyc
 *.db
 .DS_Store
+.pytest_cache
 dev/
 env/
 .DS_Store
 .DS_Store
+Bin_Port/crypto_portfolio.xlsx
+bin_strat/resources/
+Bin_Port/crypto_portfolio.xlsx
+*.xlsx
 Bin_Port/crypto_portfolio.xlsx
