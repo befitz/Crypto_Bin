@@ -3,6 +3,7 @@ local-config.yml
 *.pyc
 *.db
 .DS_Store
+.pytest_cache
 dev/
 env/
 .DS_Store
