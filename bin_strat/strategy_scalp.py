@@ -1,8 +1,10 @@
+from bin_strat.indicators import TradingSignal
 import pandas as pd
 import logging as log
 import binance_client
 from binance.client import Client
 import datetime as dt
+import indicators
 
 
 # Moved client definition to another module (so we can reuse it in bin_data.py)
@@ -36,9 +38,9 @@ def _map_klines_to_dataframe(klines):
 	df = pd.DataFrame(converted_klines)
 	df.Time = pd.to_datetime(df.Time, unit='ms')
 	df.Time = df.Time.dt.tz_localize('UTC') #To recognize timezones
-    df.Time = df.Time.dt.tz_convert('US/Eastern') #To set the timezone
-    df = df[["Time","Close","Volume"]]
-    df.Close = df.Close.astype(float)
+	df.Time = df.Time.dt.tz_convert('US/Eastern') #To set the timezone
+	df = df[["Time","Close","Volume"]]
+	df.Close = df.Close.astype(float)
 
 	return df
 
@@ -71,7 +73,7 @@ def _handle_order_cancellation(order):
 	"""
 	pass
 
-def _attempt_limit_buy(symbol, price_history):
+def _place_limit_buy(symbol, price_history):
 	"""
 	Function to generate a limit buy.
 	Args:
@@ -90,7 +92,7 @@ def _attempt_limit_buy(symbol, price_history):
 		log.info('placed a buy request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
 
 
-def strategy(symbol, interval, limit):
+def trading_strategy(symbol, interval, limit):
 	"""
 	Main trading strategy to execute!
 	Args:
@@ -98,28 +100,45 @@ def strategy(symbol, interval, limit):
 		interval (int): the time interval between historic data points. (ex: 1m, 2h, 3d)
 		limit (int): the amount of historic price points to retrieve.
 	"""
-	# query Binance API, get trading data for last limit hours.
-	price_history = client.get_klines(symbol=symbol, interval=interval, limit=limit)
-	
-	price_history_df = _map_klines_to_dataframe(price_history)
-
-	# query Binance API, get the last known trade for ticker.
 	last_known_order = next(client.get_all_orders(symbol, limit=1), None)
 
-	# if no orders exist for this ticker, we should place a buy order.
-	if not last_known_order:
-		_attempt_limit_buy(symbol, price_history_df)
-		return
+	price_history = _map_klines_to_dataframe(
+		client.get_klines(symbol=symbol, interval=interval, limit=limit)
+	)
 
-	if last_known_order['side'] == Client.SIDE_BUY:
-		# if the order is FILLED, that means we have not opened sell positions yet.
-		if last_known_order['status'] == Client.STATUS_FILLED:
-			_place_limit_sell(last_known_order)
-			return
-		# alternatively, we can cancel the order if it was placed longer than n minutes ago.
-		if last_known_order['status'] == Client.STATUS_NEW:
-			_handle_order_cancellation(last_known_order)
-			return
+	indicator = indicators.macd_signal(price_history)
 
-	# last order must have been a SELL or cancelled BUY so assess an entrypoint to buy back in.
-	_attempt_limit_buy(symbol, price_history_df)
+	if last_known_order is None:
+		pass
+
+	status = last_known_order['status']
+	if status == Client.ORDER_STATUS_FILLED:
+		_handle_completed_order()
+	elif status in [Client.ORDER_STATUS_NEW, Client.ORDER_STATUS_PARTIALLY_FILLED]:
+		_handle_open_order(last_known_order, indicator, )
+	elif status in [Client.ORDER_STATUS_CANCELED, Client.ORDER_STATUS_EXPIRED, Client.ORDER_STATUS_REJECTED]:
+		_handle_rejected_order()
+
+
+def _handle_completed_order(order, indicator):
+	last_indicator = TradingSignal.BUY if order['side'] == Client.SIDE_BUY else TradingSignal.SELL
+	if last_indicator == indicator:
+		pass # send an error here
+
+	if order['side'] == Client.SIDE_SELL and indicator == TradingSignal.BUY:
+		_place_limit_buy()
+	elif order['side'] == Client.SIDE_BUY and indicator == TradingSignal.SELL:
+		_place_limit_sell()
+
+
+def _handle_rejected_order():
+	pass
+
+
+def _handle_open_order(order, indicator):
+	last_indicator = TradingSignal.BUY if order['side'] == Client.SIDE_BUY else TradingSignal.SELL
+	if last_indicator == indicator:
+		pass # send an error here
+
+	if indicator == TradingSignal.BUY and order['side'] == Client.SIDE_SELL:
+		_handle_order_cancellation()
