@@ -94,5 +94,3 @@ if __name__ == '__main__':
         properties = set_property_export(_local_cfg_fp)
     else:
         log.info("no local configuration file specified, running in production mode")
-
-    print(properties)
