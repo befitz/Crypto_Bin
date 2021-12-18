@@ -48,14 +48,13 @@ def interpolate_environment_list(cfg):
         list: a list of indentical size where environment variables replace properties.
     """
     tree = []
-    for index in range(len(cfg)):
-        value = cfg[index]
+    for value in cfg:
         if isinstance(value, dict):
-            tree[index] = interpolate_environment_dict(value)
+            tree.append(interpolate_environment_dict(value))
         if isinstance(value, list):
-            tree[index] = interpolate_environment_list(value)
+            tree.append(interpolate_environment_list(value))
         else:
-            tree[index] = interpolate_environment_value(value)
+            tree.append(interpolate_environment_value(value))
     return tree
 
 def interpolate_environment_value(cfg):
@@ -93,3 +92,5 @@ if __name__ == '__main__':
         properties = set_property_export(_local_cfg_fp)
     else:
         log.info("no local configuration file specified, running in production mode")
+    
+    # TODO combine two dictionaries somehow... 

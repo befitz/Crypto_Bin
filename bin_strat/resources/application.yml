@@ -1,3 +1,5 @@
 properties:
   X-MBX-APIKEY: $X_MBX_APIKEY
   X-MBX-SECURITY: $X_MBX_SECURITY_KEY
+  fruits:
+    - apple
