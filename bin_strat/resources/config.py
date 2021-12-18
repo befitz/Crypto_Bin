@@ -67,9 +67,8 @@ def interpolate_environment_value(cfg):
         - cfg is '$X_MBX_APIKEY' -> replaces property with value of os.getenv("X_MBX_APIKEY")
         - cfg is 'myapikeyvalue' -> not an environment variable reference, value is copied
         - cfg is 0 -> not a string, value is copied
-    Args:
+    Arguments:
         cfg (any): the value to retrieve or ignore
-
     Returns:
         any: the value either converted or ignored
     """
