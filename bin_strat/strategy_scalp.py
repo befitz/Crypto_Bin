@@ -39,7 +39,7 @@ def _map_klines_to_dataframe(klines):
 	df.Time = pd.to_datetime(df.Time, unit='ms')
 	df.Time = df.Time.dt.tz_localize('UTC') #To recognize timezones
 	df.Time = df.Time.dt.tz_convert('US/Eastern') #To set the timezone
-	df = df[["Time","Close","Volume"]]
+	df = df[["Time", "Close", "Volume"]]
 	df.Close = df.Close.astype(float)
 
 	return df
@@ -73,6 +73,7 @@ def _handle_order_cancellation(order):
 	"""
 	pass
 
+ 
 def _place_limit_buy(symbol, price_history):
 	"""
 	Function to generate a limit buy.
@@ -109,21 +110,26 @@ def trading_strategy(symbol, interval, limit):
 	indicator = indicators.macd_signal(price_history)
 
 	if last_known_order is None:
-		pass
+		_handle_first_order(indicator)
+		return
 
 	status = last_known_order['status']
 	if status == Client.ORDER_STATUS_FILLED:
-		_handle_completed_order()
+		_handle_completed_order(last_known_order, indicator)
 	elif status in [Client.ORDER_STATUS_NEW, Client.ORDER_STATUS_PARTIALLY_FILLED]:
-		_handle_open_order(last_known_order, indicator, )
+		_handle_open_order(last_known_order, indicator)
 	elif status in [Client.ORDER_STATUS_CANCELED, Client.ORDER_STATUS_EXPIRED, Client.ORDER_STATUS_REJECTED]:
-		_handle_rejected_order()
+		_handle_rejected_order(last_known_order, indicator)
+
+def _handle_first_order(indicator):
+	if indicator == TradingSignal.BUY:
+		pass
 
 
 def _handle_completed_order(order, indicator):
 	last_indicator = TradingSignal.BUY if order['side'] == Client.SIDE_BUY else TradingSignal.SELL
 	if last_indicator == indicator:
-		pass # send an error here
+		raise ValueError('previous indicator cannot be identical to current for completed order')
 
 	if order['side'] == Client.SIDE_SELL and indicator == TradingSignal.BUY:
 		_place_limit_buy()
@@ -138,7 +144,7 @@ def _handle_rejected_order():
 def _handle_open_order(order, indicator):
 	last_indicator = TradingSignal.BUY if order['side'] == Client.SIDE_BUY else TradingSignal.SELL
 	if last_indicator == indicator:
-		pass # send an error here
+		raise ValueError('previous indicator cannot be identical to current for open order')
 
 	if indicator == TradingSignal.BUY and order['side'] == Client.SIDE_SELL:
 		_handle_order_cancellation()
