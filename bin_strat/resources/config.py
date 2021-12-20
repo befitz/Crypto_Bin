@@ -50,8 +50,7 @@ def interpolate_environment_list(cfg):
         list: a list of indentical size where environment variables replace properties.
     """
     tree = []
-    for index in range(len(cfg)):
-        value = cfg[index]
+    for value in cfg:
         if isinstance(value, dict):
             tree.append(interpolate_environment_dict(value))
         if isinstance(value, list):
@@ -75,11 +74,10 @@ def interpolate_environment_value(cfg, local = None):
     Returns:
         any: the value either converted or ignored
     """
-    if local is not None:
-        return local
-    if isinstance(cfg, str) and cfg.startswith('$'):
-        return os.getenv(cfg[1:], '')
-    return cfg
+    override = cfg if local is None else local
+    if isinstance(override, str) and override.startswith('$'):
+        return os.getenv(override[1:], '')
+    return override
 
 
 def get_property_dict(cfg_fp):
