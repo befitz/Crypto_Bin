@@ -5,7 +5,9 @@ from os.path import exists
 
 
 properties = {}
-
+"""
+Properties dictionary exported to other packages for use
+"""
 
 _application_cfg_fp = './application.yml'
 """
@@ -18,49 +20,55 @@ _local_cfg_fp = './application-local.yml'
 """
 Local Property File for running the app locally. May contain environment variable references, passwords and secret keys. 
 File is gitignored, and safe to use locally.
+ONLY OVERWRITES PROPERTIES WHICH EXIST IN MAIN APP PROPERTY FILE. (ie adding additional properties is not allowed here)
 """
 
 
-def interpolate_environment_dict(cfg, local):
+def interpret_environment_dict(cfg, local = {}):
     """
     Returns a new dict where all references to an environment variable are replaced with the actual value.
+
     Arguments:
-        cfg (dict) the dictionary to interpolate.
+        cfg (dict): the dictionary to interpret.
+        local (dict): the local override value, or {} if none.
+
     Returns:
         dict: a dictionary of indentical size where environment variables replace properties.
     """
     tree = {}
     for key, value in cfg.items():
-        local_override = ({} if local is None else local).get(key)
         if isinstance(value, dict):
-            tree[key] = interpolate_environment_dict(value, local_override)
+            tree[key] = interpret_environment_dict(value, local.get(key))
         elif isinstance(value, list):
-            tree[key] = interpolate_environment_list(value if local_override is None else local_override)
+            tree[key] = interpret_environment_list(local.get(key, value))
         else:
-            tree[key] = interpolate_environment_value(value, local_override)
+            tree[key] = interpret_environment_value(value, local.get(key))
     return tree
 
 
-def interpolate_environment_list(cfg):
+def interpret_environment_list(cfg):
     """
     Returns a new list where all references to an environment variable are replaced with the actual value.
+    Intentionally no override for a list: A list can only be interpreted 'as-is'.
+
     Arguments:
-        cfg (list) the list to interpolate.
+        cfg (list): the list to interpret.
+
     Returns:
         list: a list of indentical size where environment variables replace properties.
     """
     tree = []
     for value in cfg:
         if isinstance(value, dict):
-            tree.append(interpolate_environment_dict(value))
+            tree.append(interpret_environment_dict(value))
         if isinstance(value, list):
-            tree.append(interpolate_environment_list(value))
+            tree.append(interpret_environment_list(value))
         else:
-            tree.append(interpolate_environment_value(value))
+            tree.append(interpret_environment_value(value))
     return tree
 
 
-def interpolate_environment_value(cfg, local = None):
+def interpret_environment_value(cfg, local = None):
     """
     Given a key of any type, retrieve environment variable.
     Key must be a string, and must begin with a '$' character.
@@ -69,18 +77,30 @@ def interpolate_environment_value(cfg, local = None):
         - cfg is '$X_MBX_APIKEY' -> replaces property with value of os.getenv("X_MBX_APIKEY")
         - cfg is 'myapikeyvalue' -> not an environment variable reference, value is copied
         - cfg is 0 -> not a string, value is copied
+
     Arguments:
-        cfg (any): the value to retrieve or ignore
+        cfg (any): the value to interpret
+        local (any?): the overriden local property, or None if none.
+
     Returns:
-        any: the value either converted or ignored
+        any: the intepreted value
     """
-    override = cfg if local is None else local
-    if isinstance(override, str) and override.startswith('$'):
-        return os.getenv(override[1:], '')
-    return override
+    cfg_value = cfg if local is None else local
+    if isinstance(cfg_value, str) and cfg_value.startswith('$'):
+        return os.getenv(cfg_value[1:], '')
+    return cfg_value
 
 
 def get_property_dict(cfg_fp):
+    """
+    Opens a property file and parses it into a dictionary. Property file should not be empty or malformed.
+
+    Arguments:
+        cfg_fp (str): the filepath of the configuration file
+
+    Returns:
+        dict: The YAML property file (as a dictionary)
+    """
     with open(cfg_fp) as property_file:
         property_dict: dict = yaml.safe_load(property_file)
         if property_dict is None:
@@ -101,5 +121,4 @@ if __name__ == '__main__':
     else:
         log.info("no local configuration file specified, running in production mode")
 
-    properties = interpolate_environment_dict(master_property_file, local_property_file)
-    print(properties)
+    properties = interpret_environment_dict(master_property_file, local_property_file)
