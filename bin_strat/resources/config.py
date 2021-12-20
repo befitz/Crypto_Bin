@@ -31,9 +31,7 @@ def interpolate_environment_dict(cfg, local):
     """
     tree = {}
     for key, value in cfg.items():
-        local_override = None
-        if local is not None:
-            local_override = local.get(key)
+        local_override = ({} if local is None else local).get(key)
         if isinstance(value, dict):
             tree[key] = interpolate_environment_dict(value, local_override)
         elif isinstance(value, list):
