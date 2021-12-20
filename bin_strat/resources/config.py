@@ -21,7 +21,7 @@ File is gitignored, and safe to use locally.
 """
 
 
-def interpolate_environment_dict(cfg):
+def interpolate_environment_dict(cfg, local):
     """
     Returns a new dict where all references to an environment variable are replaced with the actual value.
     Arguments:
@@ -31,13 +31,17 @@ def interpolate_environment_dict(cfg):
     """
     tree = {}
     for key, value in cfg.items():
+        local_override = None
+        if local is not None:
+            local_override = local.get(key)
         if isinstance(value, dict):
-            tree[key] = interpolate_environment_dict(value)
-        if isinstance(value, list):
-            tree[key] = interpolate_environment_list(value)
+            tree[key] = interpolate_environment_dict(value, local_override)
+        elif isinstance(value, list):
+            tree[key] = interpolate_environment_list(value if local_override is None else local_override)
         else:
-            tree[key] = interpolate_environment_value(value)
+            tree[key] = interpolate_environment_value(value, local_override)
     return tree
+
 
 def interpolate_environment_list(cfg):
     """
@@ -48,7 +52,8 @@ def interpolate_environment_list(cfg):
         list: a list of indentical size where environment variables replace properties.
     """
     tree = []
-    for value in cfg:
+    for index in range(len(cfg)):
+        value = cfg[index]
         if isinstance(value, dict):
             tree.append(interpolate_environment_dict(value))
         if isinstance(value, list):
@@ -57,7 +62,8 @@ def interpolate_environment_list(cfg):
             tree.append(interpolate_environment_value(value))
     return tree
 
-def interpolate_environment_value(cfg):
+
+def interpolate_environment_value(cfg, local = None):
     """
     Given a key of any type, retrieve environment variable.
     Key must be a string, and must begin with a '$' character.
@@ -71,26 +77,33 @@ def interpolate_environment_value(cfg):
     Returns:
         any: the value either converted or ignored
     """
+    if local is not None:
+        return local
     if isinstance(cfg, str) and cfg.startswith('$'):
         return os.getenv(cfg[1:], '')
     return cfg
 
-def set_property_export(cfg_fp):
+
+def get_property_dict(cfg_fp):
     with open(cfg_fp) as property_file:
-        properties_dict: dict = yaml.safe_load(property_file)['properties']
-        # Assume YAML files always begin as dictionaries
-        return interpolate_environment_dict(properties_dict)
+        property_dict: dict = yaml.safe_load(property_file)
+        if property_dict is None:
+            raise ValueError('file \'%s\' exists, but has no properties or is malformed' % cfg_fp)
+        return property_dict
+
 
 if __name__ == '__main__':
     if not exists(_application_cfg_fp):
         raise FileNotFoundError('missing application.yml property file, cannot start application')
     
-    properties = set_property_export(_application_cfg_fp)
+    master_property_file = get_property_dict(_application_cfg_fp)
 
+    local_property_file = None
     if exists(_local_cfg_fp):
         log.info("local configuration file application-local.yml specified, properties will overwrite defaults")
-        properties = set_property_export(_local_cfg_fp)
+        local_property_file = get_property_dict(_local_cfg_fp)
     else:
         log.info("no local configuration file specified, running in production mode")
-    
-    # TODO combine two dictionaries somehow... 
+
+    properties = interpolate_environment_dict(master_property_file, local_property_file)
+    print(properties)
