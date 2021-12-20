@@ -122,4 +122,3 @@ if __name__ == '__main__':
         log.info("no local configuration file specified, running in production mode")
 
     properties = interpret_environment_dict(master_property_file, local_property_file)
-    print(properties)
