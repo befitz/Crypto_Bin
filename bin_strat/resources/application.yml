@@ -3,3 +3,6 @@ properties:
   X-MBX-SECURITY: $X_MBX_SECURITY_KEY
   fruits:
     - orange
+  XYZ:
+    abc:
+      def: ~

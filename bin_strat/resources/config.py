@@ -38,7 +38,7 @@ def interpret_environment_dict(cfg, local = {}):
     tree = {}
     for key, value in cfg.items():
         if isinstance(value, dict):
-            tree[key] = interpret_environment_dict(value, local.get(key))
+            tree[key] = interpret_environment_dict(value, local.get(key, {}))
         elif isinstance(value, list):
             tree[key] = interpret_environment_list(local.get(key, value))
         else:
@@ -122,3 +122,4 @@ if __name__ == '__main__':
         log.info("no local configuration file specified, running in production mode")
 
     properties = interpret_environment_dict(master_property_file, local_property_file)
+    print(properties)
