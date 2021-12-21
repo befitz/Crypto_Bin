@@ -1,13 +1,14 @@
 from bin_strat.indicators import TradingSignal
+import bin_strat.resources.config as config
 import pandas as pd
 import logging as log
 import binance_client
 from binance.client import Client
 import datetime as dt
 import indicators
+from decimal import Decimal
 
 
-# Moved client definition to another module (so we can reuse it in bin_data.py)
 client = binance_client.get_binance_client()
 
 
@@ -45,7 +46,13 @@ def _map_klines_to_dataframe(klines):
 	return df
 
 
-def _calculate_order_qty(klines):
+def _calculate_share_price(klines):
+	if not klines:
+		raise ValueError('cannot calculate share price without price history, got: %s' % str(klines))
+	return klines['Close'][-1]
+
+
+def _calculate_order_qty(symbol, share_price):
 	"""
 	Determines how many shares should be purchased given a price history.
 	Args:
@@ -53,16 +60,29 @@ def _calculate_order_qty(klines):
 	Returns:
 		int: the amount of shares that should be purchased, 0 if none.
 	"""
-	pass
+	cfg = config.properties['tickers'][symbol]
+	return round(Decimal(cfg['limit']) / Decimal(share_price), cfg['precision'])
 
 
-def _place_limit_sell(order):
+def _place_limit_sell(symbol, price_history):
 	"""
 	Given an order, place a OCO sell order good until cancelled.
 	Args:
 		order (dict): The binance api order response
 	"""
-	pass
+	if price_history.empty:
+		log.warn('no price history found for ticker %s: cannot place limit sell' % symbol)
+		return
+
+	order_quantity = client.get_asset_balance(symbol)['free'] # assets could be locked here?
+
+	share_price = _calculate_share_price(price_history)
+
+	if order_quantity > 0:
+		# TODO decide if limit sell or stop loss limit?
+		order = client.order_limit_sell(symbol = symbol, quantity = order_quantity, price = share_price)
+		log.info('placed a limit sell request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
+		log.info(str(order))
 
 
 def _handle_order_cancellation(order):
@@ -71,7 +91,9 @@ def _handle_order_cancellation(order):
 	Args:
 		order (dict): The binance api order response
 	"""
-	pass
+	log.info('attempting to cancel order %d, which has a status of %s' % (order['orderId'], order['status']))
+	result = client.cancel_order(symbol = order['symbol'], orderId = order['orderId'])
+	log.info('cancellation result: %s'.format(str(result)))
 
  
 def _place_limit_buy(symbol, price_history):
@@ -82,15 +104,17 @@ def _place_limit_buy(symbol, price_history):
 		price_history (pandas.DataFrame): frame containing historical prices
 	"""
 	if price_history.empty:
+		log.warn('no price history found for ticker %s: cannot place limit buy' % symbol)
 		return
 
 	order_quantity = _calculate_order_qty(price_history)
 
-	share_price = price_history['Close'].iloc[-1] # last closing price?
+	share_price = price_history['Close'].iloc[-1] # last closing price
 
 	if order_quantity > 0:
-		# TODO place a limit buy here!
+		order = client.order_limit_buy(symbol = symbol, quantity = order_quantity, price = share_price)
 		log.info('placed a buy request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
+		log.info(str(order))
 
 
 def trading_strategy(symbol, interval, limit):
@@ -110,31 +134,31 @@ def trading_strategy(symbol, interval, limit):
 	indicator = indicators.macd_signal(price_history)
 
 	if last_known_order is None:
-		_handle_first_order(indicator)
+		_handle_first_order(symbol, price_history, indicator)
 		return
 
 	status = last_known_order['status']
-	if status == Client.ORDER_STATUS_FILLED:
-		_handle_completed_order(last_known_order, indicator)
+	if status in [Client.ORDER_STATUS_FILLED]:
+		_handle_completed_order(last_known_order, price_history, indicator)
 	elif status in [Client.ORDER_STATUS_NEW, Client.ORDER_STATUS_PARTIALLY_FILLED]:
-		_handle_open_order(last_known_order, indicator)
+		_handle_open_order(last_known_order, price_history, indicator)
 	elif status in [Client.ORDER_STATUS_CANCELED, Client.ORDER_STATUS_EXPIRED, Client.ORDER_STATUS_REJECTED]:
-		_handle_rejected_order(last_known_order, indicator)
+		_handle_rejected_order(last_known_order, price_history, indicator)
 
-def _handle_first_order(indicator):
+
+def _handle_first_order(symbol, price_history, indicator):
 	if indicator == TradingSignal.BUY:
-		pass
+		_place_limit_buy(symbol, price_history)
 
 
-def _handle_completed_order(order, indicator):
-	last_indicator = TradingSignal.BUY if order['side'] == Client.SIDE_BUY else TradingSignal.SELL
-	if last_indicator == indicator:
+def _handle_completed_order(order, price_history, indicator):
+	if TradingSignal[order['side']] == indicator:
 		raise ValueError('previous indicator cannot be identical to current for completed order')
 
 	if order['side'] == Client.SIDE_SELL and indicator == TradingSignal.BUY:
-		_place_limit_buy()
+		_place_limit_buy(order['symbol'], price_history)
 	elif order['side'] == Client.SIDE_BUY and indicator == TradingSignal.SELL:
-		_place_limit_sell()
+		_place_limit_sell(order['symbol'], price_history)
 
 
 def _handle_rejected_order():
@@ -142,9 +166,8 @@ def _handle_rejected_order():
 
 
 def _handle_open_order(order, indicator):
-	last_indicator = TradingSignal.BUY if order['side'] == Client.SIDE_BUY else TradingSignal.SELL
-	if last_indicator == indicator:
+	if TradingSignal[order['side']] == indicator:
 		raise ValueError('previous indicator cannot be identical to current for open order')
 
 	if indicator == TradingSignal.BUY and order['side'] == Client.SIDE_SELL:
-		_handle_order_cancellation()
+		_handle_order_cancellation(order)

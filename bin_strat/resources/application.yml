@@ -1,8 +1,7 @@
 properties:
   X-MBX-APIKEY: $X_MBX_APIKEY
   X-MBX-SECURITY: $X_MBX_SECURITY_KEY
-  fruits:
-    - orange
-  XYZ:
-    abc:
-      def: ~
+  tickers:
+    BTCUSD:
+      precision: 6 # just made this up i have no idea
+      limit: 100.0 # dollars
