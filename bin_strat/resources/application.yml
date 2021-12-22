@@ -3,5 +3,9 @@ properties:
   X-MBX-SECURITY: $X_MBX_SECURITY_KEY
   tickers:
     BTCUSD:
-      precision: 6 # just made this up i have no idea
+      asset_precision: 8
+      price_precision: 4
       limit: 100.0 # dollars
+    ETHUSD:
+      asset_precision: 8
+      price_precision: 4
