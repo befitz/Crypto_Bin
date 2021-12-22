@@ -1,47 +1,30 @@
-resource "aws_iam_role" "crypto_trading_bot_execution_role" {
-  name = "crypto_trading_bot_execution_role"
-
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
+resource "aws_iam_role" "crypto_trading_bot_role" {
+  name               = "crypto_trading_bot_role"
+  assume_role_policy = data.aws_iam_policy_document.basic_assume_role.json
 }
-EOF
+
+resource "aws_iam_role_policy_attachment" "basic_attachment" {
+  policy_arn = var.lambda_basic_execution_role
+  role       = aws_iam_role.crypto_trading_bot_role.name
 }
 
 resource "aws_lambda_function" "crypto_trading_bot" {
   function_name               = "use1_crypto_trading_bot"
-  role                        = aws_iam_role.crypto_trading_bot_execution_role.arn
-  handler                     = var.lambda_handler
+  filename                    = "crypto_trading_lambda.zip"
+  role                        = aws_iam_role.crypto_trading_bot_role
+  handler                     = "trading_event_handler"
   runtime                     = "python3.8"
-  memory_size                 = 128
+  memory_size                 = 128 # smallest memory limit to save cost
   timeout                     = 10 # seconds
-
-  tracing_config {
-    mode = "Active"
-  }
 
   environment {
     variables = {
-
+      "X-MBX-APIKEY" = var.binance_api_key
+      "X-MBX-SECURITY" = var.binance_api_secret
     }
   }
-
-  vpc_config {
-    security_group_ids        = [var.ecs_service_security_group]
-    subnet_ids                = var.core_info.private_subnets
-  }
-
 }
+
 
 resource "aws_cloudwatch_event_rule" "crypto_trading_bot_event_rule" {
   name                = "crypto_trading_bot_event_rule"
@@ -50,13 +33,10 @@ resource "aws_cloudwatch_event_rule" "crypto_trading_bot_event_rule" {
   schedule_expression = "cron(0 0/2 ? * * *)"
 }
 
-# Connects the Event and the Trading Bot together.
-# Allows the lambda to execute when the event is triggered.
+
 resource "aws_cloudwatch_event_target" "firebird_sync_lambda_target" {
   rule      = aws_cloudwatch_event_rule.crypto_trading_bot_event_rule.name
 
   target_id = aws_lambda_function.crypto_trading_bot.id
   arn       = aws_lambda_function.crypto_trading_bot.arn
-
-  input     = ""
 }
