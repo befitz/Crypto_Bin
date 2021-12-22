@@ -12,3 +12,5 @@ Bin_Port/crypto_portfolio.xlsx
 Bin_Port/crypto_portfolio.xlsx
 *.xlsx
 Bin_Port/crypto_portfolio.xlsx
+Bin_Port/
+config.py
