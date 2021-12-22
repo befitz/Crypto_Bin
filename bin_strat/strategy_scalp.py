@@ -71,7 +71,7 @@ def _place_limit_sell(symbol, price_history):
 		order (dict): The binance api order response
 	"""
 	if price_history.empty:
-		log.warn('no price history found for ticker %s: cannot place limit sell' % symbol)
+		log.warn('no price history found for ticker %s: cannot place limit sell'.format(symbol))
 		return
 
 	order_quantity = client.get_asset_balance(symbol)['free'] # assets could be locked here?
@@ -81,7 +81,7 @@ def _place_limit_sell(symbol, price_history):
 	if order_quantity > 0:
 		# TODO decide if limit sell or stop loss limit?
 		order = client.order_limit_sell(symbol = symbol, quantity = order_quantity, price = share_price)
-		log.info('placed a limit sell request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
+		log.info('placed a limit sell request for %d shares of %s at $%.2d'.format(order_quantity, symbol, share_price))
 		log.info(str(order))
 
 
@@ -91,7 +91,7 @@ def _handle_order_cancellation(order):
 	Args:
 		order (dict): The binance api order response
 	"""
-	log.info('attempting to cancel order %d, which has a status of %s' % (order['orderId'], order['status']))
+	log.info('attempting to cancel order %d, which has a status of %s'.format(order['orderId'], order['status']))
 	result = client.cancel_order(symbol = order['symbol'], orderId = order['orderId'])
 	log.info('cancellation result: %s'.format(str(result)))
 
@@ -104,7 +104,7 @@ def _place_limit_buy(symbol, price_history):
 		price_history (pandas.DataFrame): frame containing historical prices
 	"""
 	if price_history.empty:
-		log.warn('no price history found for ticker %s: cannot place limit buy' % symbol)
+		log.warn('no price history found for ticker %s: cannot place limit buy'.format(symbol))
 		return
 
 	order_quantity = _calculate_order_qty(price_history)
@@ -113,7 +113,7 @@ def _place_limit_buy(symbol, price_history):
 
 	if order_quantity > 0:
 		order = client.order_limit_buy(symbol = symbol, quantity = order_quantity, price = share_price)
-		log.info('placed a buy request for %d shares of %s at $%.2d', order_quantity, symbol, share_price)
+		log.info('placed a buy request for %d shares of %s at $%.2d'.format(order_quantity, symbol, share_price))
 		log.info(str(order))
 
 
@@ -121,8 +121,10 @@ def trading_strategy(symbol, interval, limit):
 	"""
 	Main trading strategy to execute!
 	Args:
-		symbol (str): the coin ticker to act on
-		interval (int): the time interval between historic data points. (ex: 1m, 2h, 3d)
+		symbol (str): the coin ticker to act on.
+
+		interval (str): the time interval between historic data points. (ex: 1m, 2h, 3d)
+
 		limit (int): the amount of historic price points to retrieve.
 	"""
 	last_known_order = next(client.get_all_orders(symbol, limit=1), None)

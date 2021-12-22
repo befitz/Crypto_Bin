@@ -1,9 +1,9 @@
 from binance.client import Client
-import resources.config as config
+from resources.config import properties
 import logging as log
 
-_api_key = config.properties['X-MBX-APIKEY']
-_api_secret = config.properties['X-MBX-SECURITY']
+_api_key = properties['security']['binance']['X-MBX-APIKEY']
+_api_secret = properties['security']['binance']['X-MBX-SECURITY']
 
 # Defining this function here lets us re-use the connection code in other modules!
 def get_binance_client():
