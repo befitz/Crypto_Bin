@@ -1,8 +1,8 @@
-from enum import IntFlag
+from enum import IntEnum
 import pandas as pd
 
 
-class TradingSignal(IntFlag):
+class TradingSignal(IntEnum):
     BUY = 1
     SELL = -1
     HOLD = 0

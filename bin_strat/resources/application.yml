@@ -1,11 +1,15 @@
 properties:
-  X-MBX-APIKEY: $X_MBX_APIKEY
-  X-MBX-SECURITY: $X_MBX_SECURITY_KEY
-  tickers:
-    BTCUSD:
-      asset_precision: 8
-      price_precision: 4
-      limit: 100.0 # dollars
-    ETHUSD:
-      asset_precision: 8
-      price_precision: 4
+  run-interval: 2h
+  candlesticks: 60
+security:
+  binance:
+    X-MBX-APIKEY: $X_MBX_APIKEY
+    X-MBX-SECURITY: $X_MBX_SECURITY_KEY
+tickers:
+  BTCUSD:
+    asset_precision: 8
+    price_precision: 4
+    limit: 100.0 # dollars
+  ETHUSD:
+    asset_precision: 8
+    price_precision: 4
