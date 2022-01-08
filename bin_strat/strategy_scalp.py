@@ -46,10 +46,11 @@ def _map_klines_to_dataframe(klines):
 	return df
 
 
-def _calculate_share_price(klines):
+def _calculate_share_price(symbol, klines):
 	if not klines:
 		raise ValueError('cannot calculate share price without price history, got: %s' % str(klines))
-	return klines['Close'][-1]
+	cfg = config.properties['tickers'][symbol]
+	return round(Decimal(klines['Close'].iloc[-1]), cfg['price_precision'])
 
 
 def _calculate_order_qty(symbol, share_price):
@@ -61,7 +62,7 @@ def _calculate_order_qty(symbol, share_price):
 		int: the amount of shares that should be purchased, 0 if none.
 	"""
 	cfg = config.properties['tickers'][symbol]
-	return round(Decimal(cfg['limit']) / Decimal(share_price), cfg['precision'])
+	return round(Decimal(cfg['limit']) / Decimal(share_price), cfg['asset_precision'])
 
 
 def _place_limit_sell(symbol, price_history):
@@ -76,7 +77,7 @@ def _place_limit_sell(symbol, price_history):
 
 	order_quantity = client.get_asset_balance(symbol)['free'] # assets could be locked here?
 
-	share_price = _calculate_share_price(price_history)
+	share_price = _calculate_share_price(symbol, price_history)
 
 	if order_quantity > 0:
 		# TODO decide if limit sell or stop loss limit?
@@ -109,7 +110,7 @@ def _place_limit_buy(symbol, price_history):
 
 	order_quantity = _calculate_order_qty(price_history)
 
-	share_price = price_history['Close'].iloc[-1] # last closing price
+	share_price = _calculate_share_price(symbol, price_history)
 
 	if order_quantity > 0:
 		order = client.order_limit_buy(symbol = symbol, quantity = order_quantity, price = share_price)
