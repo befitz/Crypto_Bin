@@ -48,7 +48,7 @@ def _map_klines_to_dataframe(klines):
 
 def _calculate_share_price(symbol, klines):
 	if not klines:
-		raise ValueError('cannot calculate share price without price history, got: %s' % str(klines))
+		raise ValueError('cannot calculate share price without price history, got: %s'.format(str(klines)))
 	cfg = config.properties['tickers'][symbol]
 	return round(Decimal(klines['Close'].iloc[-1]), cfg['price_precision'])
 
