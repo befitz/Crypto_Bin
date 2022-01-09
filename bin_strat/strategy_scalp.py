@@ -80,7 +80,6 @@ def _place_limit_sell(symbol, price_history):
 	share_price = _calculate_share_price(symbol, price_history)
 
 	if order_quantity > 0:
-		# TODO decide if limit sell or stop loss limit?
 		order = client.order_limit_sell(symbol = symbol, quantity = order_quantity, price = share_price)
 		log.info('placed a limit sell request for %d shares of %s at $%.2d'.format(order_quantity, symbol, share_price))
 		log.info(str(order))
@@ -96,7 +95,7 @@ def _handle_order_cancellation(order):
 	result = client.cancel_order(symbol = order['symbol'], orderId = order['orderId'])
 	log.info('cancellation result: %s'.format(str(result)))
 
- 
+
 def _place_limit_buy(symbol, price_history):
 	"""
 	Function to generate a limit buy.
@@ -108,9 +107,9 @@ def _place_limit_buy(symbol, price_history):
 		log.warn('no price history found for ticker %s: cannot place limit buy'.format(symbol))
 		return
 
-	order_quantity = _calculate_order_qty(price_history)
-
 	share_price = _calculate_share_price(symbol, price_history)
+
+	order_quantity = _calculate_order_qty(symbol, share_price)
 
 	if order_quantity > 0:
 		order = client.order_limit_buy(symbol = symbol, quantity = order_quantity, price = share_price)
@@ -164,13 +163,18 @@ def _handle_completed_order(order, price_history, indicator):
 		_place_limit_sell(order['symbol'], price_history)
 
 
-def _handle_rejected_order():
-	pass
+def _handle_rejected_order(order, price_history, indicator):
+	raise RuntimeError('order %s was rejected, canceled or expired. see more: %s'.format(order['orderId'], order))
 
 
-def _handle_open_order(order, indicator):
+def _handle_open_order(order, price_history, indicator):
 	if TradingSignal[order['side']] == indicator:
 		raise ValueError('previous indicator cannot be identical to current for open order')
 
-	if indicator == TradingSignal.BUY and order['side'] == Client.SIDE_SELL:
+	if order['side'] == Client.SIDE_BUY:
+		if indicator == TradingSignal.SELL:
+			_handle_order_cancellation(order)
+	else:
 		_handle_order_cancellation(order)
+		if indicator == TradingSignal.HOLD:
+			_place_limit_sell(order['symbol'], price_history)
