@@ -37,10 +37,10 @@ def _MACD_calc(price_history):
     Returns: 
         price_history_macd (pd.DataFrame) with columns ['Close', 'ret_pct_change', 'MACD', 'signal', 'go_long', 'potential_gains']
     """
-    k = price_history['Close'].ewm(span=10, adjust=False).mean() # Get the 26-day EMA of the closing price
-    d = price_history['Close'].ewm(span=19, adjust=False).mean() # Get the 12-day EMA of the closing price
-    macd = k - d # Subtract the 26-day EMA from the 12-Day EMA to get the MACD
-    macd_s = macd.ewm(span=6, adjust=False).mean() # Get the 9-Day EMA of the MACD for the Trigger line
+    k = price_history['Close'].ewm(span=10, adjust=False).mean()  # Get the 26-day EMA of the closing price
+    d = price_history['Close'].ewm(span=19, adjust=False).mean()  # Get the 12-day EMA of the closing price
+    macd = k - d  # Subtract the 26-day EMA from the 12-Day EMA to get the MACD
+    macd_s = macd.ewm(span=6, adjust=False).mean()  # Get the 9-Day EMA of the MACD for the Trigger line
     price_history_macd = price_history.copy()
     price_history_macd['MACD'] = macd
     price_history_macd['signal'] = macd_s
@@ -57,10 +57,10 @@ def _MACD_strat(price_history_macd):
     Returns: 
         pd.DataFrame: the macd signal
     """
-    flag = 0 
+    flag = 0
     buy_sell_signal = []
-    for i in range(0,len(price_history_macd)):
-        if price_history_macd.MACD[i] > price_history_macd.signal[i]: #buy if previous indicator is hold(0)
+    for i in range(0, len(price_history_macd)):
+        if price_history_macd.MACD[i] > price_history_macd.signal[i]:  # buy if previous indicator is hold(0)
             if flag != 1:
                 buy_sell_signal.append(TradingSignal.BUY)
                 flag = 1
@@ -72,11 +72,10 @@ def _MACD_strat(price_history_macd):
                 flag = 0
             else:
                 buy_sell_signal.append(TradingSignal.HOLD)
-        else: #handle nan values
+        else:  # handle nan values
             buy_sell_signal.append(TradingSignal.HOLD)
 
-
-    macd_signal = pd.DataFrame(price_history_macd[['Time','Close']])
+    macd_signal = pd.DataFrame(price_history_macd[['Time', 'Close']])
     macd_signal['buy_sell_signal'] = buy_sell_signal
 
     return macd_signal

@@ -9,8 +9,8 @@ tickers:
   BTCUSD:
     asset_precision: 8
     price_precision: 4
-    limit: 100.0 # dollars
+    limit: 50.0 # dollars
   ETHUSD:
     asset_precision: 8
     price_precision: 4
-    limit: 200.0
+    limit: 50.0

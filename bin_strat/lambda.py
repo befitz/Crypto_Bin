@@ -2,6 +2,7 @@ from resources.config import properties
 from strategy_scalp import trading_strategy
 import logging as log
 
+
 def trading_event_handler(event, context):
     run_interval: str = properties['run-interval']
     candlesticks: int = properties['candlesticks']
