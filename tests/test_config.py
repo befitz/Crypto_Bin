@@ -52,9 +52,11 @@ class ConfigTest(unittest.TestCase):
     @patch('bin_strat.resources.config.exists')
     def test_yaml_loading(self, name, exists_local, open_input, expected, exists_mock, open_mock):
         log.info("running test %s".format(name))
+
         exists_mock.side_effect = [True, exists_local]
         open_mock.side_effect = open_input
-        self.assertEqual(load_property_configurations(), expected)
+
+        self.assertEqual(expected, load_property_configurations())
 
     @parameterized.expand([
         ("Loads Integer and String Value from Environment - Local Overrides Main",
