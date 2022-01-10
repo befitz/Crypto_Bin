@@ -1,5 +1,5 @@
 import unittest
-import pandas as pd 
+import pandas as pd
 from bin_strat.indicators import macd_signal
 
 
@@ -11,7 +11,7 @@ class TestIndicator(unittest.TestCase):
 		The input is the 'price_history_test.csv' which has an increasing price for the past 49 intervals so expected result is a HOLD (0) trading signal
 		"""
 		price_history = pd.read_csv('tests/csv_test_files/price_history_test.csv')
-		expected_result = 0 
+		expected_result = 0
 		latest_signal = macd_signal(price_history)
 		self.assertEqual(latest_signal, expected_result)
 
@@ -34,6 +34,7 @@ class TestIndicator(unittest.TestCase):
 		expected_result = 1
 		latest_signal = macd_signal(price_history)
 		self.assertEqual(latest_signal, expected_result)
+
 
 if __name__ == '__main__':
 	unittest.main()
