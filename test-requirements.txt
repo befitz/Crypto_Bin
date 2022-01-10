@@ -1,1 +1,4 @@
-parameterized
+python-binance==1.0.15
+pandas==1.3.5
+PyYAML==6.0
+parameterized==0.8.1
