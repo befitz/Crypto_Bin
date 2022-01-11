@@ -47,6 +47,16 @@ def _map_klines_to_dataframe(klines):
 
 
 def _calculate_share_price(symbol, klines):
+    """
+
+    Args:
+        symbol (str): The ticker
+        klines (pd.DataFrame) :
+
+    Returns:
+        Decimal: the share price
+
+    """
     if not klines:
         raise ValueError('cannot calculate share price without price history, got: %s'.format(str(klines)))
     cfg = config.properties['tickers'][symbol]
@@ -71,7 +81,7 @@ def _place_limit_sell(symbol, price_history):
     Given an order, place an OCO sell order good until cancelled.
     Args:
         symbol (str): The ticker
-        price_history (list): The price history for the ticker
+        price_history (pd.DataFrame): The price history for the ticker
     """
     if not price_history:
         log.warning('no price history found for ticker %s: cannot place limit sell'.format(symbol))
@@ -103,13 +113,13 @@ def _place_limit_buy(symbol, price_history):
     Function to generate a limit buy.
     Args:
         symbol (str): the ticker to place a buy limit for
-        price_history (pandas.DataFrame): frame containing historical prices
+        price_history (pd.DataFrame): frame containing historical prices
     """
     if price_history.empty:
-        log.warn('no price history found for ticker %s: cannot place limit buy'.format(symbol))
+        log.warning('no price history found for ticker %s: cannot place limit buy'.format(symbol))
         return
 
-    share_price = _calculate_share_price(symbol, price_history)
+    share_price: Decimal = _calculate_share_price(symbol, price_history)
 
     order_quantity = _calculate_order_qty(symbol, share_price)
 
@@ -131,7 +141,7 @@ def trading_strategy(symbol, interval, limit):
     """
     last_known_order = next(client.get_all_orders(symbol, limit=1), None)
 
-    price_history = _map_klines_to_dataframe(
+    price_history: pd.DataFrame = _map_klines_to_dataframe(
         client.get_klines(symbol=symbol, interval=interval, limit=limit)
     )
 
